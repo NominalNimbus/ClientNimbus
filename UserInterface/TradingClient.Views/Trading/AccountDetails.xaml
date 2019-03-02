@@ -1,0 +1,68 @@
+<UserControl x:Class="TradingClient.Views.AccountDetails"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:converters="clr-namespace:TradingClient.BaseStyles.Converters;assembly=TradingClient.BaseStyles"
+             mc:Ignorable="d" 
+             d:DesignHeight="50" d:DesignWidth="800">
+    <Grid>
+        <Grid.Resources>
+            <converters:BalanceConverter x:Key="customBalanceToStringConverter" />
+            <converters:MarginForegroundConverter x:Key="marginForegroundConverter" />
+        </Grid.Resources>        
+        <StackPanel Orientation="Horizontal" Margin="10">
+            <TextBlock>Account:</TextBlock>
+            <ComboBox Width="200" ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedAccount}" Margin="10,0" Padding="3,0"/>
+            <TextBlock Margin="10,0,3,0">User:</TextBlock>
+            <TextBlock Text="{Binding SelectedAccount.UserName}"/>
+            <TextBlock Margin="10,0,3,0">Id:</TextBlock>
+            <TextBlock Text="{Binding SelectedAccount.ID}"/>
+            <TextBlock Margin="10,0,3,0">Currency:</TextBlock>
+            <TextBlock Text="{Binding SelectedAccount.Currency}"/>
+            
+            <TextBlock Margin="10,0,3,0">Balance:</TextBlock>
+            <TextBlock>
+                <TextBlock.Text>
+                    <MultiBinding Converter="{StaticResource customBalanceToStringConverter}">
+                        <Binding Path="DataContext.SelectedAccount.Balance" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}" />
+                        <Binding Path="DataContext.SelectedAccount.BalanceDecimals" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}"/>
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+            
+            <TextBlock Margin="10,0,3,0" 
+                       Foreground="{Binding SelectedAccount.IsMarginAccount,  Converter={StaticResource marginForegroundConverter}, Mode=OneWay}">
+                Margin:
+            </TextBlock>
+            <TextBlock Foreground="{Binding SelectedAccount.IsMarginAccount,  Converter={StaticResource marginForegroundConverter}, Mode=OneWay}">
+                <TextBlock.Text>
+                    <MultiBinding Converter="{StaticResource customBalanceToStringConverter}">
+                        <Binding Path="DataContext.SelectedAccount.Margin" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}" />
+                        <Binding Path="DataContext.SelectedAccount.BalanceDecimals" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}"/>
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+
+            <TextBlock Margin="10,0,3,0">Equity:</TextBlock>
+            <TextBlock>
+                <TextBlock.Text>
+                    <MultiBinding Converter="{StaticResource customBalanceToStringConverter}">
+                        <Binding Path="DataContext.SelectedAccount.Equity" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}" />
+                        <Binding Path="DataContext.SelectedAccount.BalanceDecimals" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}"/>
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+
+            <TextBlock Margin="10,0,3,0">Profit:</TextBlock>
+            <TextBlock Foreground="{Binding SelectedAccount.Profit, Converter={StaticResource ProfitToForegroundConverter}}">
+                <TextBlock.Text>
+                    <MultiBinding Converter="{StaticResource customBalanceToStringConverter}">
+                        <Binding Path="DataContext.SelectedAccount.Profit" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}" />
+                        <Binding Path="DataContext.SelectedAccount.BalanceDecimals" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}"/>
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+        </StackPanel>
+    </Grid>
+</UserControl>

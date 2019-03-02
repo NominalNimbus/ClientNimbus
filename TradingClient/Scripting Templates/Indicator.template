@@ -1,0 +1,65 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Media;
+using CommonObjects;
+using Scripting;
+
+namespace //{@namespace}
+{
+//{@Description}
+	public class //{@Name} : IndicatorBase
+	{
+		private Selection _selection;
+		private IDataProvider _dataProvider;
+
+//{@Properties}
+		public //{@Name}()
+		{
+			Name = "//{@Name}";
+			IsOverlay = //{@IsOverlay};
+
+//{@Generated series}
+		}
+
+		/// <summary>
+        /// Initializes parameters
+        /// </summary>
+        /// <param name="selection">Data description on which  code will be run</param>
+        /// <param name="dataProvider">Provides access to historical and real time data</param>
+        /// <returns>True if succeeded</returns>
+		protected override bool InternalInit(Selection selection, IDataProvider dataProvider)
+		{
+			_selection = selection;
+			_dataProvider = dataProvider;
+
+			// Your code initialization
+
+			return true;
+		}
+
+		/// <summary>
+        /// Calculates indicator (eg. when new quote or bar appears)
+        /// </summary>
+        /// <param name="bars">Historical data to run calculation on (optional)</param>
+        /// <returns>Number of values added/updated</returns>
+        /// <remarks>If bars collection is not provided indicator will request necessary data</remarks>
+		protected override int InternalCalculate(IEnumerable<Bar> bars = null)
+		{
+			// Your code calculation logic
+
+			throw new NotImplementedException();
+		}
+
+		protected override List<ScriptingParameterBase> InternalGetParameters()
+		{
+//{@InternalGetParameters}
+		}
+
+		protected override bool InternalSetParameters(List<ScriptingParameterBase> parameterBases)
+		{
+//{@InternalSetParameters}
+			return true;
+		}
+	}
+}

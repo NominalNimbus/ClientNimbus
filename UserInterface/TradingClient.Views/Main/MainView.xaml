@@ -1,0 +1,429 @@
+<Window x:Class="TradingClient.Views.MainView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:avalon="http://schemas.xceed.com/wpf/xaml/avalondock"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
+        xmlns:ignore="http://www.ignore.com"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:extensions="clr-namespace:TradingClient.BaseStyles.Extensions;assembly=TradingClient.BaseStyles"
+        xmlns:cmd1="http://www.galasoft.ch/mvvmlight"
+        xmlns:selectors1="clr-namespace:TradingClient.BaseStyles.Selectors;assembly=TradingClient.BaseStyles"
+        xmlns:common="clr-namespace:TradingClient.Common;assembly=TradingClient.Common"
+        Title="{x:Static common:PathManager.ProductName}"
+        Deactivated="MainView_OnDeactivated"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        MinHeight="250"
+        MinWidth="500" 
+        mc:Ignorable="d ignore">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                
+                <ResourceDictionary Source="pack://application:,,,/TradingClient.BaseStyles;component/Styles/Dark/Main.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/TradingClient.BaseStyles;component/Styles/Dark/MenuItem.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/TradingClient.BaseStyles;component/Styles/Dark/DataGrid.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/TradingClient.BaseStyles;component/Styles/Dark/AvalonDock.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/TradingClient.BaseStyles;component/Styles/Dark/GroupBox.xaml" />
+                
+                <ResourceDictionary Source="../Accounts/AccountInfoView.xaml" />
+                <ResourceDictionary Source="../Depth/DepthView.xaml" />
+                <ResourceDictionary Source="../Portfolio/PortfolioView.xaml" />
+                <ResourceDictionary Source="../Scripting/ScriptingLogView.xaml" />
+                <ResourceDictionary Source="../Signals/AnalyzerView.xaml" />
+                <ResourceDictionary Source="../Signals/SignalsManagerView.xaml" />
+                <ResourceDictionary Source="../Trading/HistoryOrdersView.xaml" />
+                <ResourceDictionary Source="../Trading/PendingOrdersView.xaml" />
+
+                <ResourceDictionary Source="../Trading/IndividualPositionsView.xaml" />
+                <ResourceDictionary Source="../Trading/CombinedPositionsView.xaml" />
+                <ResourceDictionary Source="../WatchList/WatchListView.xaml" />
+                <ResourceDictionary Source="../Log/LogView.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <avalon:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+
+            <Style x:Key="ToolHeaderStyle"
+                   BasedOn="{StaticResource {x:Type TextBlock}}"
+                   TargetType="TextBlock">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsActive}" 
+                                 Value="True">
+                        <Setter Property="TextBlock.FontWeight" Value="ExtraBold" />
+                        <Setter Property="Background" Value="{x:Static SystemColors.HighlightBrush}" />
+                        <Setter Property="Foreground" Value="{x:Static SystemColors.HighlightTextBrush}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="FadeInStackPanel" TargetType="StackPanel">
+                <Style.Triggers>
+                    <Trigger Property="extensions:VisibilityEx.VisibilityAnimated" Value="Collapsed">
+                        <Trigger.EnterActions>
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                     From="1" To="0" Duration="0:0:0.3" />
+                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                        <DiscreteObjectKeyFrame KeyTime="0:0:1" Value="{x:Static Visibility.Collapsed}" />
+                                    </ObjectAnimationUsingKeyFrames>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </Trigger.EnterActions>
+                        <Trigger.ExitActions>
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                     From="0" To="1" Duration="0:0:0.3" />
+                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                        <DiscreteObjectKeyFrame KeyTime="0:0" Value="{x:Static Visibility.Visible}" />
+                                    </ObjectAnimationUsingKeyFrames>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </Trigger.ExitActions>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <DataTemplate x:Key="AvalonTitleTemplate"
+                          DataType="{x:Type avalon:LayoutContent}">
+                    <TextBlock Grid.Column="1"
+                               HorizontalAlignment="Stretch"
+                               Style="{StaticResource ToolHeaderStyle}"
+                               Text="{Binding Content.Title}"
+                               TextAlignment="Center" />
+            </DataTemplate>
+
+            <selectors1:DocumentTemplateSelector x:Key="DocumentTemplateSelector"
+                                                      AccountsTemplate="{StaticResource AccountInfoDataTemplate}"
+                                                      DepthTemplate="{StaticResource DepthViewTemplate}"
+                                                      LogTemplate="{StaticResource LogTemplate}"
+                                                      WatchListTemplate="{StaticResource WatchListTemplate}"
+                                                      HistoryOrdersTemplate="{StaticResource HistoryOrdersTemplate}"
+                                                      IndividualPositionsTemplate="{StaticResource IndividualPositionsTemplate}"
+                                                      ScriptingLogTemplate="{StaticResource ScriptingLogTemplate}"
+                                                      PendingOrdersTemplate="{StaticResource PendingOrdersTemplate}"
+                                                      PortfolioTemplate="{StaticResource PortfolioDataTemplate}"
+                                                      AnalyzerTemplate="{StaticResource AnalyzerDataTemplate}"
+                                                      SignalsManagerTemplate="{StaticResource SignalsManagerTemplate}"
+                                                      CombinedPositionsTemplate="{StaticResource CombinedPositionsViewTemplate}" />
+            <Style TargetType="{x:Type avalon:LayoutDocumentControl}"
+                   BasedOn="{StaticResource {x:Type avalon:LayoutDocumentControl}}">
+                <Setter Property="Background" Value="{StaticResource Dark_Background}"></Setter>
+            </Style>
+
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.Style>
+        <Style TargetType="{x:Type Window}">
+            <Style.BasedOn>
+                <Style TargetType="Control">
+                    <Setter Property="Background" Value="{StaticResource Dark_Background}" />
+                    <Setter Property="Foreground" Value="{StaticResource Dark_Foreground}" />
+                    <Setter Property="Visibility" 
+                            Value="{Binding IsVisible, Mode=TwoWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter={x:Static Visibility.Hidden}}" />
+                </Style>
+            </Style.BasedOn>
+        </Style>
+    </Window.Style>
+
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Closing">
+            <cmd1:EventToCommand Command="{Binding ClosingCommand}" />
+        </i:EventTrigger>
+        <i:EventTrigger EventName="Loaded">
+            <cmd1:EventToCommand Command="{Binding LoadedCommand}"  />
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+       <DockPanel  Margin="0,0,0,2"
+                   Dock="Left">
+            <Menu Width="38">
+                <Menu.Style>
+                    <Style TargetType="Control">
+                        <Setter Property="Background" Value="{StaticResource Dark_Background}" />
+                        <Setter Property="Foreground" Value="{StaticResource Dark_Foreground}" />
+                    </Style>
+                </Menu.Style>
+                <Menu.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel Orientation="Vertical"/>
+                    </ItemsPanelTemplate>
+                </Menu.ItemsPanel>
+
+                <MenuItem Command="{Binding SaveWorkspaceCommand}"
+                            CommandParameter="{Binding ElementName=dockManager}"
+                            ToolTip="Save Workspace">
+                    <MenuItem.Icon>
+                        <Image Source="../Resources/ToolbarImages/SaveWorkspace.png" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Command="{Binding LoadWorkspaceCommand}"
+                            CommandParameter="{Binding ElementName=dockManager}"
+                            ToolTip="Load Workspace">
+                    <MenuItem.Icon>
+                        <Image Source="../Resources/ToolbarImages/LoadWorkspace.png" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Command="{Binding WatchListCommand}"
+                            ToolTip="Watch List">
+                    <MenuItem.Icon>
+                        <Image Source="../Resources/ToolbarImages/WatchList.png" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Command="{Binding PortfolioCommand}"
+                                  ToolTip="Portfolio">
+                    <MenuItem.Icon>
+                        <Image Source="../Resources/ToolbarImages/Portfolio.png" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Command="{Binding AnalyzerCommand}"
+                                  IsChecked="{Binding IsAnalyzerOpen, Mode=OneWay}"
+                                  ToolTip="Analyzer">
+                    <MenuItem.Icon>
+                        <Image Source="../Resources/ToolbarImages/Analyzer.png" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Command="{Binding SignalsManagerCommand}"
+                                  IsChecked="{Binding IsSignalsMgrOpen, Mode=OneWay}"
+                                  ToolTip="Signals Manager">
+                    <MenuItem.Icon>
+                        <Image Source="../Resources/ToolbarImages/SignalManager.png" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Command="{Binding LogCommand}"
+                                  IsChecked="{Binding IsLogOpen, Mode=OneWay}"
+                                  ToolTip="Logs">
+                    <MenuItem.Icon>
+                        <Image Source="../Resources/ToolbarImages/Journal.png" />
+                    </MenuItem.Icon>
+                </MenuItem>
+
+                <MenuItem Command="{Binding PlaceTradeCommand}"
+                            IsEnabled="{Binding IsTradingAllowed}"
+                            ToolTip="New Order">
+                    <MenuItem.Icon>
+                        <Image Source="../Resources/ToolbarImages/PlaceOrder.png" />
+                    </MenuItem.Icon>
+                </MenuItem>
+                
+                <MenuItem 
+                          ToolTip="Trading">
+                    <MenuItem.Icon>
+                        <Image Source="../Resources/ToolbarImages/Trading.png" />
+                    </MenuItem.Icon>
+                    <MenuItem Command="{Binding IndividualPositionsCommand}"
+                          Header="_Individual Positions"
+                          IsCheckable="True"
+                          IsChecked="{Binding IsIndividualPositionsOpen, Mode=OneWay}">
+                        <MenuItem.Icon>
+                            <Image Source="../Resources/ToolbarImages/16x16/Postion.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Command="{Binding CombinedPositionsCommand}"
+                          Header="_Combined Positions"
+                          IsCheckable="True"
+                          IsChecked="{Binding IsCombinedPositionsOpen, Mode=OneWay}">
+                        <MenuItem.Icon>
+                            <Image Source="../Resources/ToolbarImages/16x16/CombinedPosition.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Command="{Binding HistoryOrdersCommand}"
+                          Header="History Orders"
+                          IsCheckable="True"
+                          IsChecked="{Binding IsHistoryOrdersOpen, Mode=OneWay}">
+                        <MenuItem.Icon>
+                            <Image Source="../Resources/ToolbarImages/16x16/OrderHistory.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Command="{Binding PendingOrdersCommand}"
+                          Header="Pending Orders"
+                          IsCheckable="True"
+                          IsChecked="{Binding IsPendingOrdersOpen, Mode=OneWay}">
+                        <MenuItem.Icon>
+                            <Image Source="../Resources/ToolbarImages/16x16/PendingOrders.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Command="{Binding AccountInfoCommand}"
+                          Header="_Accounts"
+                          IsCheckable="True"
+                          IsChecked="{Binding IsAccountInfoOpened, Mode=OneWay}">
+                        <MenuItem.Icon>
+                            <Image Source="../Resources/ToolbarImages/16x16/Accounts.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Command="{Binding EditBrokerAccountsCommand}"
+                          Header="_Edit accounts">
+                        <MenuItem.Icon>
+                            <Image Source="../Resources/ToolbarImages/16x16/EditAccount.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </MenuItem>
+
+                <MenuItem ToolTip="Scripting">
+                    <MenuItem.Icon>
+                        <Image Source="../Resources/ToolbarImages/Scripting.png"  />
+                    </MenuItem.Icon>
+                    
+                    <MenuItem Header="_Indicator">
+                        <MenuItem.Icon>
+                            <Image Source="../Resources/ToolbarImages/16x16/Indicator.png"/>
+                        </MenuItem.Icon>
+                        <MenuItem Command="{Binding NewIndicatorCommand}"
+                              Header="New">
+                            <MenuItem.Icon>
+                                <Image Source="../Resources/ToolbarImages/16x16/New.png"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Command="{Binding EditIndicatorCommand}"
+                              Header="Edit">
+                            <MenuItem.Icon>
+                                <Image Source="../Resources/ToolbarImages/16x16/Edit.png"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Command="{Binding SendIndicatorToServerCommand}"
+                              IsEnabled="{Binding IsUserLoggedIn, Mode=OneWay}"
+                              Header="Send to Server">
+                            <MenuItem.Icon>
+                                <Image Source="../Resources/ToolbarImages/16x16/SendToServer.png"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Command="{Binding RemoveIndicatorFromServerCommand}"
+                              IsEnabled="{Binding IsUserLoggedIn, Mode=OneWay}"
+                              Header="Remove from Server">
+                            <MenuItem.Icon>
+                                <Image Source="../Resources/ToolbarImages/16x16/RemoveFromServer.png"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                    </MenuItem>
+                    <MenuItem Header="_Signal">
+                        <MenuItem.Icon>
+                            <Image Source="../Resources/ToolbarImages/16x16/Signal.png"/>
+                        </MenuItem.Icon>
+                        <MenuItem Command="{Binding NewSignalCommand}"
+                              Header="New">
+                            <MenuItem.Icon>
+                                <Image Source="../Resources/ToolbarImages/16x16/New.png"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Command="{Binding EditSignalCommand}"
+                              Header="Edit">
+                            <MenuItem.Icon>
+                                <Image Source="../Resources/ToolbarImages/16x16/Edit.png"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                    </MenuItem>
+
+                    <MenuItem Command="{Binding ShowReportCommand}"
+                          Header="_Show Report">
+                        <MenuItem.Icon>
+                            <Image Source="../Resources/ToolbarImages/16x16/Report.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+
+                    <MenuItem Command="{Binding ScriptingLogCommand}"
+                          Header="Script Logs"
+                          IsCheckable="True"
+                          IsChecked="{Binding IsScriptingLogOpen, Mode=OneWay}">
+                        <MenuItem.Icon>
+                            <Image Source="../Resources/ToolbarImages/16x16/Output.png"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </MenuItem>
+
+                <MenuItem ToolTip="About">
+                    <MenuItem.Icon>
+                        <Image Source="../Resources/ToolbarImages/16x16/Help.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </Menu>
+        </DockPanel>
+
+        <avalon:DockingManager x:Name="dockManager"
+                               Grid.Column="1"
+                               ActiveContent="{Binding ActiveDocument, Mode=TwoWay}"
+                               AllowMixedOrientation="True"
+                               AnchorableTitleTemplate="{StaticResource AvalonTitleTemplate}"
+                               DocumentPaneControlStyle="{StaticResource DocumentPaneControlStyle}"
+                               DocumentsSource="{Binding Documents}"
+                               GridSplitterHeight="8"
+                               GridSplitterWidth="8"
+                               LayoutItemTemplateSelector="{StaticResource DocumentTemplateSelector}">
+            <avalon:LayoutRoot>
+                <avalon:LayoutPanel>
+                    <avalon:LayoutDocumentPaneGroup DockWidth="*">
+                        <avalon:LayoutDocumentPane />
+                    </avalon:LayoutDocumentPaneGroup>
+                    <avalon:LayoutAnchorablePaneGroup DockWidth="Auto" />
+                </avalon:LayoutPanel>
+            </avalon:LayoutRoot>
+
+            <avalon:DockingManager.LayoutItemContainerStyle>
+                <Style TargetType="{x:Type avalon:LayoutItem}">
+                    <Setter Property="Title" Value="{Binding Model.Title}" />
+                    <Setter Property="Visibility" Value="{Binding Model.IsVisible, Mode=TwoWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter={x:Static Visibility.Hidden}}" />
+                    <Setter Property="ContentId" Value="{Binding Model.Id, Mode=TwoWay}" />
+                    <Setter Property="IsSelected" Value="{Binding Model.IsSelected, Mode=TwoWay}" />
+                    <Setter Property="IsActive" Value="{Binding Model.IsActive, Mode=TwoWay}" />
+                    <Setter Property="CloseCommand" Value="{Binding Model.CloseCommand}" />
+                    <Setter Property="CanFloat" Value="True" />
+                    <Setter Property="AllowDrop" Value="False" />
+                </Style>
+            </avalon:DockingManager.LayoutItemContainerStyle>
+        </avalon:DockingManager>
+
+        <StackPanel Grid.Column="1"
+                    Background="{StaticResource Dark_DarkBorderBrush}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,20,10"
+                    MaxWidth="300" 
+                    MaxHeight="150" 
+                    Panel.ZIndex="10"
+                    Style="{StaticResource FadeInStackPanel}"
+                    extensions:VisibilityEx.VisibilityAnimated="{Binding IsNotificationVisible, 
+                                                                         Converter={StaticResource BoolToVisibilityConverter}}">
+
+            <StackPanel.InputBindings>
+                <MouseBinding MouseAction="LeftClick" Command="{Binding HideNotificationCommand}" />
+            </StackPanel.InputBindings>
+
+            <Border BorderBrush="{StaticResource Dark_Foreground}" 
+                    BorderThickness="2" 
+                    HorizontalAlignment="Left" 
+                    VerticalAlignment="Top">
+                <StackPanel MaxHeight="146" Orientation="Horizontal">
+                    <Image Width="48"
+                           Height="48"
+                           Margin="10,10,0,10"
+                           Source="../Resources/Images/Notification.png"
+                           VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1"
+                               Margin="10"
+                               MaxHeight="130"
+                               MaxWidth="220"
+                               MinWidth="120"
+                               Text="{Binding NotificationMessage}"
+                               TextTrimming="WordEllipsis"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center"
+                               KeyboardNavigation.IsTabStop="False">
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </Grid>
+</Window>

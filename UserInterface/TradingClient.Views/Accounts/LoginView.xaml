@@ -1,0 +1,174 @@
+<Window x:Class="TradingClient.Views.LoginView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:ignore="http://www.ignore.com"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        xmlns:beh="clr-namespace:TradingClient.BaseStyles.Behaviours;assembly=TradingClient.BaseStyles"
+        Width="300"
+        ResizeMode="NoResize"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        Title="Authentication"
+        mc:Ignorable="d ignore">
+
+    <i:Interaction.Behaviors>
+        <beh:DialogResultBehavior DialogResultTrigger="{Binding DialogResult}"/>
+    </i:Interaction.Behaviors>
+
+    <Window.Resources>
+        <ResourceDictionary >
+
+            <Style TargetType="{x:Type TextBlock}">
+                <Setter Property="Margin" Value="3" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="HorizontalAlignment" Value="Right" />
+            </Style>
+            <Style BasedOn="{StaticResource TextBoxDefaultStyle}"
+                   TargetType="{x:Type TextBox}">
+                <Setter Property="Width" Value="150" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Margin" Value="3" />
+            </Style>
+            <Style BasedOn="{StaticResource {x:Type PasswordBox}}"
+                   TargetType="{x:Type PasswordBox}">
+                <Setter Property="Width" Value="150" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="PasswordChar" Value="*" />
+                <Setter Property="Margin" Value="3" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.Style>
+        <Style TargetType="{x:Type Window}">
+            <Setter Property="Background" Value="{StaticResource Dark_Background}" />
+            <Setter Property="Foreground" Value="{StaticResource Dark_Foreground}" />
+        </Style>
+    </Window.Style>
+
+    <Grid >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0"
+              Margin="0 10 0 10">
+            <Grid >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.5*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           Grid.Column="0"
+                           HorizontalAlignment="Right"
+                           Text="Username" />
+
+                <TextBox Grid.Row="0"
+                         Grid.Column="1"
+                         Text="{Binding UserName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                
+                <TextBlock Grid.Row="1"
+                           Grid.Column="0"
+                           HorizontalAlignment="Right"
+                           Text="Password"/>
+                
+                <PasswordBox Grid.Row="1"
+                             Grid.Column="1">
+                    <i:Interaction.Behaviors>
+                        <beh:BindablePasswordBehavior Password="{Binding Password, Mode=TwoWay}" />
+                    </i:Interaction.Behaviors>
+                </PasswordBox>
+
+            </Grid>
+        </Grid>
+
+        <Separator Grid.Row="1" 
+                   Height="2"
+                   Margin="70 0 0 0"/>
+
+        <Grid Grid.Row="2"
+              Margin="0 10 0 10">
+            <Grid >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="0.5*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           Grid.Column="0"
+                           HorizontalAlignment="Right"
+                           Text="Host IP"/>
+
+                <TextBox Grid.Row="0"
+                         Grid.Column="1"
+                         Text="{Binding Host, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <TextBlock Grid.Row="1"
+                           Grid.Column="0"
+                           HorizontalAlignment="Right"
+                           Text="Port"/>
+
+                <xctk:IntegerUpDown Grid.Row="1"
+                                    Grid.Column="1"
+                                    Width="150"
+                                    Increment="1"
+                                    Maximum="65536"
+                                    Minimum="1"
+                                    Margin="3"
+                                    Value="{Binding Port, Mode=TwoWay}"/>
+
+            </Grid>
+        </Grid>
+
+        <Separator Grid.Row="3" 
+                   Height="2"/>
+
+        <Grid Grid.Row="4">
+            <Grid HorizontalAlignment="Right">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Command="{Binding LoginCommand, IsAsync=True}"
+                        Grid.Column="0"
+                        HorizontalAlignment="Right"
+                        Width="60"
+                        Height="25"
+                        Content="Login"
+                        IsDefault="True"/>
+
+                <Button Command="{Binding CancelCommand, IsAsync=True}"
+                        HorizontalAlignment="Right"
+                        Width="60"
+                        Height="25"
+                        Grid.Column="1"
+                        Content="Cancel"
+                        IsCancel="True"/>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

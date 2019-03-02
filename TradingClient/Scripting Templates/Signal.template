@@ -1,0 +1,549 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Media;
+using CommonObjects;
+using Scripting;
+using Auxiliaries;
+using TradingLogic;
+
+namespace //{@namespace}
+{
+//{@Description}
+	public class //{@Name} : SignalBase
+	{
+		
+        #region Members
+
+        private readonly ExecuteTradesParam _execTradesParam;
+
+        private bool _internalBacktest;
+        private int _backtestBatch;
+        private StartMethod _startMethod;
+        private PriceConstants _backtestPriceConst;
+
+        private int TradeSlot { get; set; }
+        private int TradingPeriod { get; set; }
+        private Dictionary<Selection, IEnumerable<Bar>> InstrumentData { get; set; }
+
+        #endregion
+
+//{@Properties}
+		public //{@Name}()
+		{
+			Name = "//{@Name}";
+			_execTradesParam = new ExecuteTradesParam();
+			InstrumentData = new Dictionary<Selection, IEnumerable<Bar>>();
+		}
+
+		/// <summary>
+        /// Initializes signal instruments
+        /// </summary>
+        /// <param name="selections">List of data descriptions on which code will be run</param>
+        /// <returns>True if succeeded</returns>
+		protected override bool InternalInit(IEnumerable<Selection> selections)
+		{
+			Selections.Clear();
+			Selections.AddRange(selections);
+			StartMethod = _startMethod;
+            if (StartMethod == StartMethod.Periodic)
+			    ExecutionPeriod = TradingPeriod;
+
+			_execTradesParam.TradeableSymbols = Selections
+				.Where(i => i.MarketDataSlot == TradeSlot).Select(i => i.Symbol).Distinct().ToList();
+            _execTradesParam.DataFeed = DataProvider;
+			
+			// Your code initialization
+
+			return true;
+		}
+
+		/// <summary>
+        /// Runs on new ticks, new bar or by timer (see <see cref="StartMethod"/> property)
+        /// </summary>
+        /// <param name="instrument">Instrument that triggered execution (optional)</param>
+		/// <param name="ticks">Ticks collected since previous execution (optional)</param>
+		protected override void InternalStart(Selection instrument = null, IEnumerable<Tick> ticks = null)
+		{
+		    var signalParam = OrigParameters;
+            foreach (var item in Selections)
+			{
+				var data = DataProvider.GetBars(item);
+				if(data?.Count > 0)
+				{
+					InstrumentData.Add(item, data);
+				}
+			}                
+
+            var trades = Evaluate(InstrumentData, signalParam, instrument, ticks);
+			TradeSignal(trades);
+
+            if (trades != null && trades.Count > 0)
+            {
+                // Perform some action based on the trade details
+				foreach (var account in BrokerAccounts)
+                {
+                    foreach (var orderInfo in GenerateOrderParams(trades))
+                    {
+                        PlaceOrder(orderInfo, account);
+                    }
+                }
+            }
+
+            InstrumentData.Clear();
+		}
+
+		/// <summary>
+        /// Runs backtest for single instrument and a set of parameter values
+		/// </summary>
+        /// <param name="instruments">Instruments to be backtested</param>
+        /// <param name="parameters">Set of parameter values to use for backtest</param>
+		/// <returns>List of generated trades</returns>
+		protected override List<TradeSignal> BacktestSlotItem(IEnumerable<Selection> instruments, IEnumerable<object> parameters)
+		{
+			// Get data for all provided instruments
+		    var selections = instruments as Selection[] ?? instruments.ToArray();
+
+		    var data = new Dictionary<Selection, List<Bar>>(selections.Length);
+            if (BacktestSettings?.BarData != null && BacktestSettings.BarData.Any())  //provided with backtest settings
+            {
+                foreach (var item in selections)
+                {
+                    var bars = BacktestSettings.BarData
+                        .FirstOrDefault(b => b.Key.Symbol == item.Symbol
+                            && b.Key.TimeFactor == item.TimeFactor
+                            && b.Key.Timeframe == item.Timeframe).Value;
+                    if (bars != null && bars.Count > 0)
+                        data.Add(item, bars);
+                }
+            }
+            else if(BacktestSettings != null)  //need to request from data provider
+            {
+                for (var i = 0; i < selections.Length; i++)
+                {
+                    var btInstrument = (Selection)selections[i].Clone();
+                    if (BacktestSettings.BarsBack > 0)
+                        btInstrument.BarCount = BacktestSettings.BarsBack;
+                    if (BacktestSettings.StartDate.Year > 2000)
+                        btInstrument.From = BacktestSettings.StartDate;
+                    if (BacktestSettings.EndDate > BacktestSettings.StartDate)
+                        btInstrument.To = BacktestSettings.EndDate;
+                    var bars = DataProvider.GetBars(btInstrument);
+                    if (bars != null && bars.Count > 0)
+                        data.Add(btInstrument, bars);
+                }
+            }
+
+		    var parametersList = parameters.ToList();
+
+		    var batchSize = GetBacktestBatchSize(parametersList);
+            if (data.Count == 0 || batchSize < 1)
+                return new List<TradeSignal>(0);
+
+            // Scan all data collections
+            var result = new List<TradeSignal>();
+            var indices = data.ToDictionary(k => k.Key, v => 0);
+            while (true)
+            {
+                // Get instrument with oldest/earliest data
+                var time = DateTime.MaxValue;
+                foreach (var item in data)
+                {
+                    var idx = indices[item.Key];
+                    if (idx >= 0 && idx < item.Value.Count && item.Value[idx].Date < time)
+                        time = item.Value[idx].Date;
+                }
+                if (time == DateTime.MaxValue)
+                    break;
+
+                var selectionsToUse = new List<Selection>();
+                foreach (var item in data)
+                {
+                    var idx = indices[item.Key];
+                    if (idx >= 0 && idx < item.Value.Count && item.Value[idx].Date == time)
+                        selectionsToUse.Add(item.Key);
+                }
+                
+                // Get necessary data frame to scan
+                var dataFrames = new Dictionary<Selection, IEnumerable<Bar>>(selectionsToUse.Count);
+                foreach (var item in data)
+                {
+                    if (selectionsToUse.Contains(item.Key))
+                    {
+                        dataFrames.Add(item.Key, item.Value.GetRange(indices[item.Key], batchSize));
+                        indices[item.Key]++;
+                    }
+                }
+
+                // Evaluate current batch
+                if (dataFrames.Count > 0)
+                {
+                    var trades = Evaluate(dataFrames, parametersList);
+
+                    var barData = dataFrames.Keys.FirstOrDefault();
+                    var barToProccess = dataFrames.Values.FirstOrDefault()?.FirstOrDefault();
+                    SimulationBroker.ProcessBar(barData?.Symbol, barToProccess);
+					                    
+                    foreach (var account in BrokerAccounts)
+                    {
+                        foreach (var orderInfo in GenerateOrderParams(trades))
+                        {
+                            PlaceOrder(orderInfo, account);
+                        }
+                    }
+
+                    if (trades != null && trades.Count > 0)
+                        result.AddRange(trades);
+                }
+
+				// Break if backtest has been aborted
+                if (State != SignalState.Backtesting && State != SignalState.BacktestingPaused)
+                    break;
+            }
+
+            return result;
+		}
+		
+		protected override OrderParams AnalyzePreTrade(OrderParams order)
+		{
+			// Your order details analyzer
+			
+			return order;
+		}
+		
+		protected override void AnalyzePostTrade(Order order)
+		{
+            // Your order feedback analyzer
+            foreach (var account in BrokerAccounts)
+            {
+                if (_execTradesParam.HideSL || _execTradesParam.HideTP)
+                {
+                    ModifyOrder(order.UserID, _execTradesParam.SL, _execTradesParam.TP, _execTradesParam.HideSL, account);
+                }
+            }
+		}
+
+		protected override void ProcessTradeFailure(Order order, string error)
+        {
+            // Your order failure handler
+
+        }
+
+		protected override List<ScriptingParameterBase> InternalGetParameters()
+        {
+            return new List<ScriptingParameterBase>()
+            {
+                new StringParam("Start Event: ", "Chose On Which Event The Signal Calculation Is Triggered", 0)
+                {
+                    Value = "Periodical",
+                    AllowedValues = new List<string>
+                    {
+                        "New Bar", "New Tick", "Periodical"
+                    }
+                },
+                new IntParam("Start Event Frequency: ", "Only Start Event 'Periodical' Time in [ms]", 1)
+                {
+                    Value = 5000,
+                    MinValue = 1,
+                    MaxValue = 1000000
+                },
+                new IntParam("Trade Slot: ","Chose Which Instruments Allowed For Trading", 2)
+                {
+                    Value = 1,
+                    MinValue = 0,
+                    MaxValue = 100
+                },
+                new StringParam("Order Type: ", "Chose Order Type", 3)
+                {
+                    Value = "Market",
+                    AllowedValues = new List<string>
+                    {
+                        "Market", "Limit", "Stop Market"
+                    }
+                },
+                new StringParam("TIF: ", "Time In Force", 4)
+                {
+                    Value = "FOK",
+                    AllowedValues = new List<string>
+                    {
+                        "FOK", "GFD", "IOC", "GTC"
+                    }
+                },
+                new StringParam("Hide Order: ", "Broker Don't See Limit and Stop Market Orders, SL and TP are hidden as well", 5)
+                {
+                    Value = "OFF",
+                    AllowedValues = new List<string>
+                    {
+                        "ON", "OFF"
+                    }
+                },
+                new StringParam("Internal BackTest: ", "Signals Self Backtest During Normal Live Execution", 6)
+                {
+                    Value = "OFF",
+                    AllowedValues = new List<string>
+                    {
+                        "ON", "OFF"
+                    }
+                },
+                new StringParam("BackTest Price Element: ", "Chose Which Price Data Element Is Processed", 7)
+                {
+                    Value = "CLOSE",
+                    AllowedValues = new List<string>
+                    {
+                        "OPEN", "HIGH", "LOW", "CLOSE", "OHLC", "OLHC"
+                    }
+                },
+                new StringParam("Hide SL ", "Broker Don't See Stop Loss", 8)
+                {
+                    Value = "OFF",
+                    AllowedValues = new List<string>
+                    {
+                        "ON", "OFF"
+                    }
+                },
+                new StringParam("Hide TP ", "Broker Don't See Take Profit", 9)
+                {
+                    Value = "OFF",
+                    AllowedValues = new List<string>
+                    {
+                        "ON", "OFF"
+                    }
+                },
+                new IntParam("Quantity: ","", 10)
+                {
+                    Value = 1,
+                    MinValue = 0,
+                    MaxValue = 100
+                },
+                new IntParam("Sell Price Offset: ","For 1pip enter '10'!!!", 11)
+                {
+                    Value = 50,
+                    MinValue = 0,
+                    MaxValue = 10000
+                },
+                new IntParam("Buy Price Offset: ","For 1pip enter '10'!!!", 12)
+                {
+                    Value = 50,
+                    MinValue = 0,
+                    MaxValue = 10000
+                },
+                new IntParam("Stop Loss Offset: ","For 1pip enter '10'!!!", 13)
+                {
+                    Value = 0,
+                    MinValue = 0,
+                    MaxValue = 10000
+                },
+                new IntParam("Take Profit Offset: ","For 1pip enter '10'!!!", 14)
+                {
+                    Value = 0,
+                    MinValue = 0,
+                    MaxValue = 10000
+                },
+                new IntParam("Backtest Batch: ","Data Window For Backtesting", 15)
+                {
+                    Value = 1,
+                    MinValue = 0,
+                    MaxValue = 1000000000
+                },
+//{@InternalGetParameters}
+            };
+		}
+
+		protected override bool InternalSetParameters(List<ScriptingParameterBase> parameterBases)
+        {
+            var inputValue = ((StringParam)parameterBases[0]).Value;
+            switch (inputValue)
+            {
+                case "New Bar": _startMethod = StartMethod.NewBar; break;
+                case "New Tick": _startMethod = StartMethod.NewTick; break;
+                case "Periodical": _startMethod = StartMethod.Periodic; break;
+                default: Exit("Invalid Start Event Parameter."); return false;
+            }
+
+            TradingPeriod = ((IntParam)parameterBases[1]).Value;
+            TradeSlot = ((IntParam)parameterBases[2]).Value;
+
+            inputValue = ((StringParam)parameterBases[3]).Value;
+            switch (inputValue)
+            {
+                case "Market": _execTradesParam.OrderType = OrderType.Market; break;
+                case "Limit": _execTradesParam.OrderType = OrderType.Limit; break;
+                case "Stop Market": _execTradesParam.OrderType = OrderType.Stop; break;
+                default: Exit("Invalid Order Type Parameter."); return false;
+            }
+
+            inputValue = ((StringParam)parameterBases[4]).Value;
+            switch (inputValue)
+            {
+                case "FOK": _execTradesParam.TIF = TimeInForce.FillOrKill; break;
+                case "GFD": _execTradesParam.TIF = TimeInForce.GoodForDay; break;
+                case "IOC": _execTradesParam.TIF = TimeInForce.ImmediateOrCancel; break;
+                case "GTC": _execTradesParam.TIF = TimeInForce.GoodTilCancelled; break;
+                default: Exit("Invalid TIF Parameter."); return false;
+            }
+
+            inputValue = ((StringParam)parameterBases[5]).Value;
+            switch (inputValue)
+            {
+                case "ON": _execTradesParam.HideOrder = true; break;
+                case "OFF": _execTradesParam.HideOrder = false; break;
+                default: Exit("Invalid Hide Limit Order Parameter."); return false;
+            }
+
+            inputValue = ((StringParam)parameterBases[6]).Value;
+            switch (inputValue)
+            {
+                case "ON": _internalBacktest = true; break;
+                case "OFF": _internalBacktest = false; break;
+                default: Exit("Invalid BackTest Mode Parameter."); return false;
+            }
+
+            inputValue = ((StringParam)parameterBases[7]).Value;
+            switch (inputValue)
+            {
+                case "OPEN": _backtestPriceConst = PriceConstants.OPEN; break;
+                case "HIGH": _backtestPriceConst = PriceConstants.HIGH; break;
+                case "LOW": _backtestPriceConst = PriceConstants.LOW; break;
+                case "CLOSE": _backtestPriceConst = PriceConstants.CLOSE; break;
+                case "OHLC": _backtestPriceConst = PriceConstants.OHLC; break;
+                case "OLHC": _backtestPriceConst = PriceConstants.OLHC; break;
+                default: Exit("Invalid BackTest Price Parameter."); return false;
+            }
+
+            inputValue = ((StringParam)parameterBases[8]).Value;
+            switch (inputValue)
+            {
+                case "ON": _execTradesParam.HideSL = true; break;
+                case "OFF": _execTradesParam.HideSL = false; break;
+                default: Exit("Invalid Hide Limit Order Parameter."); return false;
+            }
+
+            inputValue = ((StringParam)parameterBases[9]).Value;
+            switch (inputValue)
+            {
+                case "ON": _execTradesParam.HideTP = true; break;
+                case "OFF": _execTradesParam.HideTP = false; break;
+                default: Exit("Invalid Hide Limit Order Parameter."); return false;
+            }
+
+            _execTradesParam.OrderQuantity = ((IntParam)parameterBases[10]).Value;
+            _execTradesParam.SellPriceOffset = ((IntParam)parameterBases[11]).Value;
+            _execTradesParam.BuyPriceOffset = ((IntParam)parameterBases[12]).Value;
+            _execTradesParam.SL = (decimal?)((IntParam)parameterBases[13]).Value > 0 ? (decimal?)((IntParam)parameterBases[13]).Value / 100000 : null;
+            _execTradesParam.TP = (decimal?)((IntParam)parameterBases[14]).Value > 0 ? (decimal?)((IntParam)parameterBases[14]).Value / 100000 : null;
+            _backtestBatch = ((IntParam)parameterBases[15]).Value;
+//{@InternalSetParameters}
+
+            return true;
+		}
+
+		private int GetBacktestBatchSize(IEnumerable<object> values = null)
+        {
+            // Return the batch size for each backtest scan step of current instrument
+            // For example, if history has 100 bars and you need at least 20 bars 
+            // to calculate your indicators batch size would be equal to 20.
+
+            // Example: return the largest integer value of provided parameters
+            // (eg. if you have several period parameters for your signal's indicators
+            // return values.Any() ? values.OfType<int>().Max() : 0;
+
+            return _backtestBatch;
+        }
+
+		private Dictionary<string, int> _trades = new Dictionary<string, int>();
+
+        private List<TradeSignal> DetectSignals(Dictionary<Selection, IEnumerable<Bar>> historicMarketData)
+        {
+            var trades = new List<TradeSignal>();
+
+            foreach (var item in historicMarketData)
+            {
+                 if (!_trades.TryGetValue(item.Key.Symbol, out var tradesCount))
+                    tradesCount = 0;
+
+                _trades[item.Key.Symbol] = ++tradesCount;
+                var side = tradesCount % 2 == 0 ? Side.Buy : Side.Sell;
+
+                trades.Add(new TradeSignal
+                {
+					Id = Guid.NewGuid().ToString(),
+                    Instrument = item.Key,
+                    Time = item.Value.Last().Date,
+                    Price = item.Value.Last().MeanClose,
+                    Side = side
+                });
+			
+				Output($"Generated {side} order");
+            }
+
+            return trades;
+        }
+
+        #region Evaluate
+
+        private List<TradeSignal> Evaluate(Dictionary<Selection, IEnumerable<Bar>> marketData,
+            IEnumerable<object> parameterItem,
+            Selection triggerInstrument = null,
+            IEnumerable<Tick> ticks = null)
+        {
+            /* Evaluate supplied data bars using provided parameters 
+               and return a collection of trades on successful evaluation
+               Hint: you can pass these bars to your IndicatorBase instance in its Calculate() method
+               and you can use current parameter values as that IndicatorBase parameters */
+
+            #region Internal Backtest       
+
+            if (_execTradesParam.EvalCount % 10 == 0 && _internalBacktest)
+            {
+                _internalBacktest = false;
+
+                Alert("----------------------------------");
+                Alert("START Internal Backtest");
+                Alert("----------------------------------");
+
+                var res = Backtest(false);
+                var tradeCount = res?[0].Summaries?.Select(i => i.NumberOfTradeSignals).DefaultIfEmpty(0)?.Sum() ?? 0;
+                _internalBacktest = true;
+
+                Alert("Evaluate(): Internal Backtest Trades: " + tradeCount);
+                Alert("----------------------------------");
+                Alert("STOP Internal Backtest");
+                Alert("----------------------------------");
+            }
+
+            #endregion
+
+            #region Prepare marketdata and pass it to trading logic for processing
+
+            if (State == SignalState.Backtesting) // && dataTickframes.Count() > 0)
+            {
+                var timer = new MicroStopwatch();
+                timer.Start();
+
+                var trades = BacktestPriceSegmentation.BacktestPriceSegmentProcessor(this, marketData, _execTradesParam,
+                    _backtestPriceConst, DetectSignals, ticks);
+
+                timer.Stop();
+                Alert($"Init instrumentData: ExecutionTime = {timer.ElapsedMicroseconds:#,0} µs");
+
+                return trades;
+            }
+
+            try
+            {
+                return DetectSignals(marketData);
+            }
+
+            catch (Exception e)
+            {
+                Alert($"Evaluate(): Failed to Run on Scripting: {e.Message}");
+                return new List<TradeSignal>();
+            }
+
+            #endregion
+        }
+
+		#endregion
+
+    }
+}

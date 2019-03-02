@@ -1,0 +1,669 @@
+<ResourceDictionary x:Class="TradingClient.Views.PortfolioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:TradingClient.BaseStyles.Converters;assembly=TradingClient.BaseStyles"
+                    xmlns:orders="clr-namespace:TradingClient.ViewModelInterfaces;assembly=TradingClient.ViewModelInterfaces">
+    <DataTemplate x:Key="PortfolioDataTemplate"  DataType="{x:Type orders:IPortfolioViewModel}">
+        <DataTemplate.Resources>
+            <converters:SelectCurrencyBasedProfit x:Key="CurrencyBasedProfit"/>
+            <converters:BalanceConverter x:Key="customBalanceToStringConverter" />
+            <converters:PriceToStringConverter x:Key="PriceToStringConverter" />
+            <converters:MarginForegroundConverter x:Key="marginForegroundConverter" />
+        </DataTemplate.Resources>
+        <Grid Background="{StaticResource Dark_Background}">
+            <Grid x:Name="Stack" Margin="15">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" MinHeight="100"/>
+                    <RowDefinition Height="3"/>
+                    <RowDefinition Height="3*" MinHeight="150"/>
+                </Grid.RowDefinitions>
+
+                <Grid >
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel.Resources>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Margin" Value="10,0"/>
+                            </Style>
+                        </StackPanel.Resources>
+                        <TextBlock Margin="0,0,5,0">Portfolio:</TextBlock>
+                        <ComboBox Width="200" ItemsSource="{Binding Portfolios}" SelectedItem="{Binding SelectedPortfolio, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="Name"/>
+
+                        <Button Margin="20,0" Command="{Binding CreatePortfolioCommand}">Create</Button>
+
+                        <Button Margin="20,0" Command="{Binding EditPortfolioCommand}">Edit</Button>
+
+                        <Button Margin="20,0" Command="{Binding RemovePortfolioCommand}">Remove</Button>
+
+                    </StackPanel>
+
+                    <GroupBox Grid.Row="1" Header="Overall portfolio info" Margin="0,8" Padding="3" BorderBrush="{StaticResource Dark_LightBorderBrush}">
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel.Resources>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Margin" Value="0,0,10,0"/>
+                                </Style>
+                            </StackPanel.Resources>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Name:" Margin="0,0,3,0"/>
+                                <TextBlock Text="{Binding SelectedPortfolio.Name}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Currency:" Margin="0,0,3,0"/>
+                                <TextBlock Text="{Binding SelectedPortfolio.BaseCurrency}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Balance:" Margin="0,0,3,0"/>
+                                <TextBlock Text="{Binding OverallBalance, StringFormat='{}{0:##0.00}'}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Margin:" Margin="0,0,3,0"
+                                           Foreground="{Binding OverallIsMarginAccounts, Converter={StaticResource marginForegroundConverter}, Mode=OneWay}"/>
+                                <TextBlock Text="{Binding OverallMargin, StringFormat='{}{0:##0.00}'}"
+                                           Foreground="{Binding OverallIsMarginAccounts, Converter={StaticResource marginForegroundConverter}, Mode=OneWay}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Equity:" Margin="0,0,3,0"/>
+                                <TextBlock Text="{Binding OverallEquity, StringFormat='{}{0:##0.00}'}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Profit:" Margin="0,0,3,0"/>
+                                <TextBlock Text="{Binding OverallProfit, StringFormat='{}{0:##0.00}'}" Foreground="{Binding OverallProfit, Converter={StaticResource ProfitToForegroundConverter}}"/>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </GroupBox>
+
+                    <DataGrid IsReadOnly="True"
+                            ItemsSource="{Binding Accounts}" 
+                            ColumnWidth="*" Margin="0,15"
+                            Grid.Row="2">
+
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding Name,
+                                                                  Mode=OneWay}"
+                                                Header="Account Name"/>
+                            <DataGridTextColumn Binding="{Binding Account.BrokerName,
+                                                                  Mode=OneWay}"
+                                                Header="Broker Name"/>
+                            <DataGridTextColumn Binding="{Binding Account.UserName,
+                                                                  Mode=OneWay}"
+                                                Header="User Name"/>
+                            <DataGridTextColumn Binding="{Binding Account.ID,
+                                                                  Mode=OneWay}"
+                                                Header="Account ID"/>
+                            <DataGridTextColumn Binding="{Binding Account.Currency,
+                                                                  Mode=OneWay}"
+                                                Header="Account currency"/>
+                            <DataGridTextColumn Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}, 
+                                    Path=DataContext.SelectedPortfolio.BaseCurrency, Mode=OneWay}"
+                                                Header="Portfolio currency"/>
+                            <DataGridTextColumn Header="Balance">
+                                <DataGridTextColumn.Binding>
+                                    <MultiBinding Converter="{StaticResource CurrencyBasedProfit}"
+                                                                Mode="OneWay" StringFormat="{}{0:##0.00}" >
+                                        <Binding Path="Account.Coefficient"/>
+                                        <Binding RelativeSource="{RelativeSource AncestorType={x:Type DataGrid}}" Path="DataContext.SelectedPortfolio.BaseCurrency"/>
+                                        <Binding Path="Account.Balance"/>
+                                    </MultiBinding>
+                                </DataGridTextColumn.Binding>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="Margin">
+                                <DataGridTextColumn.Binding>
+                                    <MultiBinding Converter="{StaticResource CurrencyBasedProfit}"
+                                                                Mode="OneWay" StringFormat="{}{0:##0.00}" >
+                                        <Binding Path="Account.Coefficient"/>
+                                        <Binding RelativeSource="{RelativeSource AncestorType={x:Type DataGrid}}" Path="DataContext.SelectedPortfolio.BaseCurrency"/>
+                                        <Binding Path="Account.Margin"/>
+                                    </MultiBinding>
+                                </DataGridTextColumn.Binding>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Equity">
+                                <DataGridTextColumn.Binding>
+                                    <MultiBinding Converter="{StaticResource CurrencyBasedProfit}"
+                                                                Mode="OneWay" StringFormat="{}{0:##0.00}" >
+                                        <Binding Path="Account.Coefficient"/>
+                                        <Binding RelativeSource="{RelativeSource AncestorType={x:Type DataGrid}}" Path="DataContext.SelectedPortfolio.BaseCurrency"/>
+                                        <Binding Path="Account.Equity"/>
+                                    </MultiBinding>
+                                </DataGridTextColumn.Binding>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Header="Profit">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate >
+                                        <TextBlock Foreground="{Binding Account.Profit, Converter={StaticResource ProfitToForegroundConverter}}">
+                                            <TextBlock.Text>
+                                                <MultiBinding Converter="{StaticResource CurrencyBasedProfit}"
+                                                                Mode="OneWay" StringFormat="{}{0:##0.00}" >
+                                                    <Binding Path="Account.Coefficient"/>
+                                                    <Binding RelativeSource="{RelativeSource AncestorType={x:Type DataGrid}}" Path="DataContext.SelectedPortfolio.BaseCurrency"/>
+                                                    <Binding Path="Account.Profit"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+
+                <GridSplitter Background="#737373" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+
+                <Grid Grid.Row="2" Margin="0,15,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal"  Grid.Row="0">
+                        <TextBlock Margin="0,0,5,0">Account:</TextBlock>
+                        <ComboBox Width="200" Margin="0,0,30,0" ItemsSource="{Binding Accounts}" SelectedValue="{Binding SelectedAccount, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                  DisplayMemberPath="Name" SelectedValuePath="Account"/>
+                    </StackPanel>
+
+                    <GroupBox Grid.Row="1" Header="Original account info" Margin="0,8" Padding="3" BorderBrush="{StaticResource Dark_LightBorderBrush}">
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel.Resources>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Margin" Value="0,0,10,0"/>
+                                </Style>
+                            </StackPanel.Resources>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="User:" Margin="0,0,3,0"/>
+                                <TextBlock Text="{Binding SelectedAccount.UserName}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="ID:" Margin="0,0,3,0"/>
+                                <TextBlock Text="{Binding SelectedAccount.ID}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Currency:" Margin="0,0,3,0"/>
+                                <TextBlock Text="{Binding SelectedAccount.Currency}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Balance:" Margin="0,0,3,0"/>
+                                <TextBlock >
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource customBalanceToStringConverter}">
+                                            <Binding Path="DataContext.SelectedAccount.Balance" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}" />
+                                            <Binding Path="DataContext.SelectedAccount.BalanceDecimals" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Margin:" Margin="0,0,3,0"
+                                           Foreground="{Binding SelectedAccount.IsMarginAccount,  Converter={StaticResource marginForegroundConverter}, Mode=OneWay}"/>
+                                <TextBlock Foreground="{Binding SelectedAccount.IsMarginAccount, Converter={StaticResource marginForegroundConverter}, Mode=OneWay}">
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource customBalanceToStringConverter}">
+                                            <Binding Path="DataContext.SelectedAccount.Margin" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}" />
+                                            <Binding Path="DataContext.SelectedAccount.BalanceDecimals" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Equity:" Margin="0,0,3,0"/>
+                                <TextBlock >
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource customBalanceToStringConverter}">
+                                            <Binding Path="DataContext.SelectedAccount.Equity" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}" />
+                                            <Binding Path="DataContext.SelectedAccount.BalanceDecimals" RelativeSource="{RelativeSource AncestorType=Grid, Mode=FindAncestor}"/>
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Profit:" Margin="0,0,3,0"/>
+                                <TextBlock Text="{Binding SelectedAccount.Profit, StringFormat='{}{0:##0.00}'}" Foreground="{Binding SelectedAccount.Profit, Converter={StaticResource ProfitToForegroundConverter}}"/>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </GroupBox>
+
+                    <TabControl Margin="0,5" BorderThickness="0" BorderBrush="Transparent"
+                                Background="Transparent"  Grid.Row="2">
+                        <TabControl.Items>
+                            <TabItem Header="Individual Positions">
+                                <DataGrid IsReadOnly="True"
+                                      ItemsSource="{Binding Orders}"
+                                      SelectedItem="{Binding SelectedOrder}" 
+                                      ColumnWidth="*">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Binding="{Binding Order.OpenDate,
+                                                                  Mode=OneWay}"
+                                                Header="Open Time" />
+                                        <DataGridTextColumn Binding="{Binding Order.OrderType,
+                                                                  Mode=OneWay}"
+                                                Header="Type" />
+                                        <DataGridTemplateColumn Header="Side" >
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Foreground="{Binding Order.OrderSide,
+                                                                        Converter={converters:OrderSideToForegroundConverter},
+                                                                        Mode=OneWay}"
+                                                   Text="{Binding Order.OrderSide,
+                                                                  Mode=OneWay}" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Binding="{Binding Order.Quantity,
+                                                                  StringFormat='{}{0:##0.00}',
+                                                                  Mode=OneWay}"
+                                                Header="Quantity" />
+                                        <DataGridTextColumn Binding="{Binding Instrument.Symbol,
+                                                                  Mode=OneWay}"
+                                                Header="Symbol" />
+                                        <DataGridTextColumn Header="Price" >
+                                            <DataGridTextColumn.Binding>
+                                                <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                                  Mode="OneWay" >
+                                                    <Binding Path="Order.Price" />
+                                                    <Binding Path="Instrument.Digits" />
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
+                                        <DataGridTemplateColumn Header="Current Price" >
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Foreground="{Binding CurrentPriceChange, Converter={StaticResource ProfitToForegroundConverter}, Mode=OneWay}" >
+                                                        <TextBlock.Text>
+                                                            <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                                              Mode="OneWay" >
+                                                                <Binding Path="CurrentPrice" />
+                                                                <Binding Path="Instrument.Digits" />
+                                                            </MultiBinding>
+
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="S/L Offset" >
+                                            <DataGridTextColumn.Binding>
+                                                <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                                  Mode="OneWay" >
+                                                    <Binding Path="SL" />
+                                                    <Binding Path="Instrument.Digits" />
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="T/P Offset" >
+                                            <DataGridTextColumn.Binding>
+                                                <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                                  Mode="OneWay" >
+                                                    <Binding Path="TP" />
+                                                    <Binding Path="Instrument.Digits" />
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
+
+                                        <DataGridTextColumn Binding="{Binding Order.Commission,
+                                                                  StringFormat='{}{0:##0.00###}',
+                                                                  Mode=OneWay}"
+                                                Header="Trade C." />
+                                        <DataGridTemplateColumn Header="P/L Pips">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Foreground="{Binding ProfitPips,
+                                                                        Converter={StaticResource ProfitToForegroundConverter},
+                                                                        Mode=OneWay}"
+                                                   Text="{Binding ProfitPips,
+                                                                  Mode=OneWay,
+                                                                  StringFormat='{}{0:##0}'}"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn Header="Profit">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Foreground="{Binding ProfitPips,
+                                                                        Converter={StaticResource ProfitToForegroundConverter},
+                                                                        Mode=OneWay}">
+                                                        <TextBlock.Text>
+                                                            <MultiBinding Converter="{StaticResource CurrencyBasedProfit}"
+                                                                  Mode="OneWay" StringFormat="{}{0:##0.00}" >
+                                                                <Binding Source="{x:Reference Stack}" Path="DataContext.SelectedAccount.Coefficient"/>
+                                                                <Binding Source="{x:Reference Stack}" Path="DataContext.SelectedPortfolio.BaseCurrency"/>
+                                                                <Binding Path="Profit"/>
+                                                            </MultiBinding>
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Binding="{Binding Order.TimeInForce,
+                                                                  Mode=OneWay}"
+                                                Header="TIF" />
+                                        <DataGridTemplateColumn Header="Server Side" >
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Background="{Binding IsServerSide,
+                                                                    Converter={converters:ExecutionSideToBrushConverter Server=#A83434}, Mode=OneWay}"
+                                                Text="{Binding IsServerSide, Mode=OneWay}" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                    </DataGrid.Columns>
+
+                                    <DataGrid.ContextMenu>
+                                        <ContextMenu >
+                                            <MenuItem Command="{Binding ModifyTradeCommand}"
+                                          Header="Modify Order"
+                                          IsEnabled="{Binding IsTradingAllowed}" >
+                                                <MenuItem.Icon>
+                                                    <Image Source="Resources\Images\Configure.png" />
+                                                </MenuItem.Icon>
+                                            </MenuItem>
+                                            <MenuItem Command="{Binding PlaceOpposite}"
+                                          Header="Place Opposite"
+                                          IsEnabled="{Binding IsTradingAllowed}" >
+                                                <MenuItem.Icon>
+                                                    <Image Source="Resources\Images\NewOrder.png" Width="16" Height="16"/>
+                                                </MenuItem.Icon>
+                                            </MenuItem>
+                                        </ContextMenu>
+                                    </DataGrid.ContextMenu>
+                                </DataGrid>
+                            </TabItem>
+                            <TabItem Header="Combined Positions">
+                                <DataGrid IsReadOnly="True"
+                                            ItemsSource="{Binding Positions}"
+                                            SelectedItem="{Binding SelectedPosition}" 
+                                            ColumnWidth="*">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Binding="{Binding Position.Symbol,
+                                                                  Mode=OneWay}"
+                                                Header="Symbol" />
+                                        <DataGridTextColumn Binding="{Binding Qty,
+                                                                  StringFormat='{}{0:##0.00}',
+                                                                  Mode=OneWay}"
+                                                Header="Quantity" />
+                                        <DataGridTemplateColumn Header="Side" >
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Foreground="{Binding Side,
+                                                                        Converter={converters:OrderSideToForegroundConverter},
+                                                                        Mode=OneWay}"
+                                                   Text="{Binding Side,
+                                                                  Mode=OneWay}" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Avg. Price" >
+                                            <DataGridTextColumn.Binding>
+                                                <MultiBinding Converter="{StaticResource PriceToStringConverter}" >
+                                                    <Binding Path="AvgPrice" />
+                                                    <Binding Path="Instrument.Digits" />
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
+                                        <DataGridTemplateColumn Header="Current Price" >
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Foreground="{Binding CurrentPriceChange, Converter={StaticResource ProfitToForegroundConverter}, Mode=OneWay}" >
+                                                        <TextBlock.Text>
+                                                            <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                                              Mode="OneWay" >
+                                                                <Binding Path="CurrentPrice" />
+                                                                <Binding Path="Instrument.Digits" />
+                                                            </MultiBinding>
+
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn Header="P/L Pips">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Foreground="{Binding ProfitPips,
+                                                                        Converter={StaticResource ProfitToForegroundConverter},
+                                                                        Mode=OneWay}"
+                                                   Text="{Binding ProfitPips,
+                                                                  Mode=OneWay,
+                                                                  StringFormat='{}{0:##0}'}"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn Header="Profit">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Foreground="{Binding ProfitPips,
+                                                                        Converter={StaticResource ProfitToForegroundConverter},
+                                                                        Mode=OneWay}">
+                                                        <TextBlock.Text>
+                                                            <MultiBinding Converter="{StaticResource CurrencyBasedProfit}"
+                                                                Mode="OneWay" StringFormat="{}{0:##0.00}" >
+                                                                <Binding Source="{x:Reference Stack}" Path="DataContext.SelectedAccount.Coefficient"/>
+                                                                <Binding Source="{x:Reference Stack}" Path="DataContext.SelectedPortfolio.BaseCurrency"/>
+                                                                <Binding Path="Profit"/>
+                                                            </MultiBinding>
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                    <DataGrid.ContextMenu>
+                                        <ContextMenu >
+                                            <ContextMenu.Resources>
+                                                <Style TargetType="Image" >
+                                                    <Setter Property="Width" Value="16" />
+                                                    <Setter Property="Height" Value="16" />
+                                                </Style>
+                                            </ContextMenu.Resources>
+                                            <MenuItem Command="{Binding ClosePosition}"
+                                            IsEnabled="{Binding IsTradingAllowed}"
+                                            Header="Close Position" />
+                                        </ContextMenu>
+                                    </DataGrid.ContextMenu>
+                                </DataGrid>
+                            </TabItem>
+                            <TabItem Header="Working Orders">
+                                <DataGrid IsReadOnly="True"
+                                    ItemsSource="{Binding PendingOrders}"
+                                    SelectedItem="{Binding SelectedPendingOrder}" 
+                                    ColumnWidth="*">
+
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Binding="{Binding Order.OpenDate,
+                                                            Mode=OneWay}"
+                                        Header="Open Time" />
+                                        <DataGridTextColumn Binding="{Binding Order.OrderType,
+                                                            Mode=OneWay}"
+                                        Header="Type" />
+                                        <DataGridTemplateColumn Header="Side" >
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Foreground="{Binding Order.OrderSide,
+                                                                Converter={converters:OrderSideToForegroundConverter},
+                                                                Mode=OneWay}"
+                                            Text="{Binding Order.OrderSide,
+                                                            Mode=OneWay}" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Binding="{Binding Order.Quantity,
+                                                            StringFormat='{}{0:##0.00}',
+                                                            Mode=OneWay}"
+                                                            Header="Qty" />
+                                        <DataGridTextColumn Binding="{Binding FilledQty,
+                                                        StringFormat='{}{0:##0.00}',
+                                                        Mode=OneWay}"
+                                            Header="Filled Qty." />
+                                        <DataGridTextColumn Binding="{Binding Order.Symbol,
+                                                        Mode=OneWay}"
+                                            Header="Symbol" />
+                                        <DataGridTextColumn Header="Price" >
+                                            <DataGridTextColumn.Binding>
+                                                <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                            Mode="OneWay" >
+                                                    <Binding Path="Order.Price" />
+                                                    <Binding Path="Instrument.Digits" />
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
+                                        <DataGridTemplateColumn Header="Current Price" >
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Foreground="{Binding CurrentPriceChange, Converter={StaticResource ProfitToForegroundConverter}, Mode=OneWay}" >
+                                                        <TextBlock.Text>
+                                                            <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                                        Mode="OneWay" >
+                                                                <Binding Path="CurrentPrice" />
+                                                                <Binding Path="Instrument.Digits" />
+                                                            </MultiBinding>
+
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="S/L Offset" >
+                                            <DataGridTextColumn.Binding>
+                                                <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                            Mode="OneWay" >
+                                                    <Binding Path="SL" />
+                                                    <Binding Path="Instrument.Digits" />
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="T/P Offset" >
+                                            <DataGridTextColumn.Binding>
+                                                <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                            Mode="OneWay" >
+                                                    <Binding Path="TP" />
+                                                    <Binding Path="Instrument.Digits" />
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
+
+                                        <DataGridTextColumn Binding="{Binding Order.Commission,
+                                                            StringFormat='{}{0:##0.00###}',
+                                                            Mode=OneWay}"
+                                        Header="Trade C." />
+                                        <DataGridTextColumn Binding="{Binding Order.TimeInForce,
+                                                            Mode=OneWay}"
+                                        Header="TIF" />
+                                        <DataGridTemplateColumn Header="Server Side" >
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Background="{Binding IsServerSide,
+                                                            Converter={converters:ExecutionSideToBrushConverter Server=#A83434}, Mode=OneWay}"
+                                        Text="{Binding IsServerSide, Mode=OneWay}" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                    <DataGrid.ContextMenu>
+                                        <ContextMenu >
+                                            <MenuItem Command="{Binding ModifyPendingCommand}"
+                                Header="Modify Order"
+                                IsEnabled="{Binding IsTradingAllowed}" >
+                                                <MenuItem.Icon>
+                                                    <Image Source="Resources\Images\Configure.png" />
+                                                </MenuItem.Icon>
+                                            </MenuItem>
+                                            <MenuItem Command="{Binding CancelPendingCommand}"
+                                Header="Cancel"
+                                IsEnabled="{Binding IsTradingAllowed}" >
+                                                <MenuItem.Icon>
+                                                    <Image Source="Resources\Images\Delete.png" Width="16" Height="16"/>
+                                                </MenuItem.Icon>
+                                            </MenuItem>
+                                        </ContextMenu>
+                                    </DataGrid.ContextMenu>
+                                </DataGrid>
+                            </TabItem>
+                            <TabItem Header="Orders history">
+                                <DataGrid IsReadOnly="True"
+                                    ItemsSource="{Binding HistoricalOrders}"
+                                    ColumnWidth="*">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Binding="{Binding Order.OpenDate,
+                                                              Mode=OneWay}"
+                                            Header="Open Time" />
+                                        <DataGridTextColumn Binding="{Binding Order.OrderType,
+                                                              Mode=OneWay}"
+                                            Header="Type" />
+                                        <DataGridTemplateColumn Header="Side" >
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate >
+                                                    <TextBlock Foreground="{Binding Order.OrderSide,
+                                                                    Converter={converters:OrderSideToForegroundConverter},                                                                    Mode=OneWay}"
+                                               Text="{Binding Order.OrderSide,
+                                                              Mode=OneWay}" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Binding="{Binding Order.Quantity,
+                                                              StringFormat='{}{0:##0.00}',
+                                                              Mode=OneWay}"
+                                            Header="Quantity" />
+                                        <DataGridTextColumn Binding="{Binding Instrument.Symbol,
+                                                              Mode=OneWay}"
+                                            Header="Symbol" />
+                                        <DataGridTextColumn Header="Fill Price" >
+                                            <DataGridTextColumn.Binding>
+                                                <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                              Mode="OneWay" >
+                                                    <Binding Path="Order.Price" />
+                                                    <Binding Path="Instrument.Digits" />
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="S/L Offset" >
+                                            <DataGridTextColumn.Binding>
+                                                <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                              Mode="OneWay" >
+                                                    <Binding Path="Order.SLOffset" />
+                                                    <Binding Path="Instrument.Digits" />
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="T/P Offset" >
+                                            <DataGridTextColumn.Binding>
+                                                <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                              Mode="OneWay" >
+                                                    <Binding Path="Order.TPOffset" />
+                                                    <Binding Path="Instrument.Digits" />
+                                                </MultiBinding>
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Width="Auto"
+                                            Binding="{Binding Order.TimeInForce,
+                                                              Mode=OneWay}"
+                                            Header="TIF" />
+
+                                        <DataGridTextColumn Header="Status" >
+                                            <DataGridTextColumn.Binding>
+                                                <Binding Mode="OneWay"
+                                                     Path="Order.OrderStatus"
+                                                     Converter="{converters:OrderStatusToStringConverter}" />
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
+
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </TabItem>
+                        </TabControl.Items>
+                    </TabControl>
+
+                </Grid>
+            </Grid>
+        </Grid>
+    </DataTemplate>
+</ResourceDictionary>

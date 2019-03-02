@@ -1,0 +1,19 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:pg="http://schemas.xceed.com/wpf/xaml/toolkit"
+                    xmlns:avalon="http://schemas.xceed.com/wpf/xaml/avalondock"
+                    xmlns:converters="clr-namespace:TradingClient.BaseStyles.Converters" >
+
+    <avalon:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    <pg:InverseBoolConverter x:Key="InverseBoolConverter" />
+    <pg:ExpandableObjectMarginConverter x:Key="ExpandableObjectMarginConverter" />
+    <converters:ProfitToForegroundConverter x:Key="ProfitToForegroundConverter" />
+
+    <avalon:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
+    <avalon:AnchorSideToOrientationConverter x:Key="AnchorSideToOrientationConverter" />
+    <avalon:AnchorSideToAngleConverter x:Key="AnchorSideToAngleConverter" />
+    <avalon:NullToDoNothingConverter x:Key="NullToDoNothingConverter" />
+    <avalon:LayoutItemFromLayoutModelConverter x:Key="LayoutItemFromLayoutModelConverter" />
+    <avalon:ActivateCommandLayoutItemFromLayoutModelConverter x:Key="ActivateCommandLayoutItemFromLayoutModelConverter" />
+
+</ResourceDictionary>

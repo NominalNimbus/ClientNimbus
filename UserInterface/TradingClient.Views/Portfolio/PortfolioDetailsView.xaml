@@ -1,0 +1,239 @@
+<Window x:Class="TradingClient.Views.PortfolioAccountsView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        xmlns:beh="clr-namespace:TradingClient.BaseStyles.Behaviours;assembly=TradingClient.BaseStyles"
+        xmlns:converters="clr-namespace:TradingClient.BaseStyles.Converters;assembly=TradingClient.BaseStyles"
+        Width="600"
+        Height="300"
+        WindowStartupLocation="CenterScreen"
+        Title="Portfolio"
+        x:Name="PortfolioDetailsWindow">
+
+    <i:Interaction.Behaviors>
+        <beh:DialogResultBehavior DialogResultTrigger="{Binding DialogResult}" />
+    </i:Interaction.Behaviors>
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/TradingClient.BaseStyles;component/Styles/Dark/Main.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/TradingClient.BaseStyles;component/Styles/Dark/DataGrid.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style BasedOn="{StaticResource TextBoxDefaultStyle}" TargetType="{x:Type TextBox}">
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="Margin" Value="3" />
+            </Style>
+            <Style BasedOn="{StaticResource {x:Type PasswordBox}}"
+                   TargetType="{x:Type PasswordBox}">
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="PasswordChar" Value="*" />
+                <Setter Property="Margin" Value="3" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.Style>
+        <Style TargetType="{x:Type Window}">
+            <Setter Property="Background" Value="{StaticResource Dark_Background}" />
+            <Setter Property="Foreground" Value="{StaticResource Dark_Foreground}" />
+            <Setter Property="MinWidth" Value="600" />
+            <Setter Property="MinHeight" Value="270" />
+        </Style>
+    </Window.Style>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        
+        <StackPanel Margin="5,10" Orientation="Horizontal">
+            <TextBlock VerticalAlignment="Center">Portfolio name:</TextBlock>
+            <TextBox VerticalAlignment="Center" Width="250" MaxLength="48" 
+                     IsReadOnly="{Binding IsEditing}" Text="{Binding Name}" Margin="5,0,15,0"/>
+            <TextBlock VerticalAlignment="Center">Base currency:</TextBlock>
+            <ComboBox ItemsSource="{Binding AvailableCurrencies}" SelectedItem="{Binding BaseCurrency}" Margin="7,0"/>
+        </StackPanel>
+
+        <TabControl 
+                    Grid.Row="1"
+                    BorderThickness="0" 
+                    BorderBrush="Transparent" 
+                    Background="Transparent"
+                    SelectedIndex="{Binding SelectedTabIndex}">
+            <TabControl.Resources>
+                <Style TargetType="{x:Type TabItem}" BasedOn="{StaticResource TabItemStyle}">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type TabItem}">
+                                <Grid>
+                                    <Border 
+                                            Name="Border" 
+                                            Padding="5,2" 
+                                            BorderBrush="{StaticResource Dark_DarkBorderBrush}" 
+                                            BorderThickness="1,1,1,0">
+                                        <ContentPresenter x:Name="TabItemContent" ContentSource="Header"/>
+                                    </Border>
+                                </Grid>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="TextElement.Foreground" TargetName="TabItemContent" Value="White"/>
+                                        <Setter Property="Margin" Value="-2,-2,-2,0"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.Resources>
+            
+            <TabControl.Items>
+                <TabItem Header="Accounts">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <DataGrid 
+                                  AutoGenerateColumns="False"
+                                  BorderThickness="1"
+                                  CanUserResizeRows="False"
+                                  ColumnWidth="*"
+                                  GridLinesVisibility="Vertical"
+                                  ItemsSource="{Binding Accounts}"
+                                  SelectedItem="{Binding SelectedAccount}"
+                                  SelectionMode="Single"
+                                  SelectionUnit="FullRow"
+                                  Margin="5">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="Name">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBox 
+                                                     MaxLength="48" 
+                                                     BorderBrush="Transparent" 
+                                                     BorderThickness="0" 
+                                                     Background="Transparent" 
+                                                     Text="{Binding Item.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Broker" IsReadOnly="True" Binding="{Binding Item.BrokerName}"/>
+                                <DataGridTextColumn Header="User Name" IsReadOnly="True" Binding="{Binding Item.DisplatyUserName}"/>
+                                <DataGridTextColumn Header="Connection state" IsReadOnly="True" Binding="{Binding Connection}"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <StackPanel Grid.Column="2" Width="60" Margin="5">
+                            <Button Command="{Binding AddAccountCommand, IsAsync=True}">Add</Button>
+                            <Button Command="{Binding RemoveAccountCommand, IsAsync=True}">Remove</Button>
+                        </StackPanel>
+
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Strategies">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <DataGrid 
+                                  AutoGenerateColumns="False"
+                                  BorderThickness="1"
+                                  CanUserResizeRows="False"
+                                  ColumnWidth="*"
+                                  GridLinesVisibility="Vertical"
+                                  ItemsSource="{Binding Strategies}"
+                                  SelectedItem="{Binding SelectedStrategy}"
+                                  SelectionMode="Single"
+                                  SelectionUnit="FullRow"
+                                  Margin="5">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="Name" MaxWidth="120">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBox 
+                                                     MaxLength="48" 
+                                                     BorderBrush="Transparent" 
+                                                     BorderThickness="0" 
+                                                     Background="Transparent" 
+                                                     IsReadOnly="{Binding HasSignals}"
+                                                     Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Datafeeds">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <xctk:CheckComboBox 
+                                                                ItemsSource="{Binding DataContext.AvailableDatafeeds, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Window}}}"
+                                                                SelectedItemsOverride="{Binding Datafeeds, Mode=TwoWay}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Exposed Balance">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <xctk:DoubleUpDown 
+                                                               BorderBrush="Transparent" 
+                                                               BorderThickness="0" 
+                                                               Background="Transparent"
+                                                               Minimum="0"
+                                                               DefaultValue="0"
+                                                               Value="{Binding ExposedBalance, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Signals">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                                <TextBox 
+                                                         BorderBrush="Transparent" 
+                                                         Background="Transparent" 
+                                                         BorderThickness="0" 
+                                                         IsReadOnly="True"
+                                                         Text="{Binding Signals, Mode=OneWay}" 
+                                                         ToolTip="{Binding Signals}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <StackPanel Grid.Column="1" Width="60" Margin="5">
+                            <Button Command="{Binding AddStrategyCommand, IsAsync=True}">Add</Button>
+                            <Button Command="{Binding RemoveStrategyCommand, IsAsync=True}">Remove</Button>
+                        </StackPanel>
+
+                    </Grid>
+                </TabItem>
+            </TabControl.Items>
+        </TabControl>
+        
+        <Grid Grid.Row="2">
+            <StackPanel Margin="3,15,3,10"
+                        HorizontalAlignment="Center"
+                        Orientation="Horizontal">
+                <Button Command="{Binding SubmitCommand, IsAsync=True}"
+            		Content="OK"
+            		IsDefault="True"
+            		IsEnabled="{Binding IsBusy, Converter={converters:InverseBoolConverter}}"
+            		 />
+                <Button Command="{Binding CancelCommand}"
+            		Content="Cancel"
+            		 />
+            </StackPanel>
+
+        </Grid>
+    </Grid>
+</Window>

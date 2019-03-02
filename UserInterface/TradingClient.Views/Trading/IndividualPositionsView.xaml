@@ -1,0 +1,172 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:TradingClient.BaseStyles.Converters;assembly=TradingClient.BaseStyles"
+                    xmlns:orders="clr-namespace:TradingClient.ViewModelInterfaces;assembly=TradingClient.ViewModelInterfaces"
+                    xmlns:local="clr-namespace:TradingClient.Views">
+
+    <DataTemplate x:Key="IndividualPositionsTemplate"
+                  DataType="{x:Type orders:IIndividualPositionsViewModel}">
+        <DataTemplate.Resources>
+            <converters:PriceToStringConverter x:Key="PriceToStringConverter" />
+        </DataTemplate.Resources>
+        <Grid>
+            
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <local:AccountDetails  Accounts="{Binding Accounts}"
+                SelectedAccount="{Binding SelectedAccount}" />
+
+            <DataGrid IsReadOnly="True"
+                      ItemsSource="{Binding Orders}"
+                      SelectedItem="{Binding SelectedOrder}" 
+                      ColumnWidth="*"
+                      Grid.Row="1"
+                      Grid.ColumnSpan="2">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding Order.OpenDate,
+                                                          Mode=OneWay}"
+                                        Header="Open Time" />
+                    <DataGridTextColumn Binding="{Binding Order.OrderType,
+                                                          Mode=OneWay}"
+                                        Header="Type" />
+                    <DataGridTemplateColumn Header="Side">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Foreground="{Binding Order.OrderSide,
+                                                                Converter={converters:OrderSideToForegroundConverter},
+                                                                Mode=OneWay}"
+                                           Text="{Binding Order.OrderSide,
+                                                          Mode=OneWay}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Binding="{Binding Order.Quantity,
+                                                          StringFormat='{}{0:#####0.#####}',
+                                                          Mode=OneWay}"
+                                        Header="Quantity" />
+                    <DataGridTextColumn Binding="{Binding Instrument.Symbol,
+                                                          Mode=OneWay}"
+                                        Header="Symbol" />
+                    <DataGridTextColumn Header="Price">
+                        <DataGridTextColumn.Binding>
+                            <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                          Mode="OneWay">
+                                <Binding Path="Order.Price" />
+                                <Binding Path="Instrument.Digits" />
+                            </MultiBinding>
+                        </DataGridTextColumn.Binding>
+                    </DataGridTextColumn>
+                    <DataGridTemplateColumn Header="Current Price">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Foreground="{Binding CurrentPriceChange, Converter={StaticResource ProfitToForegroundConverter}, Mode=OneWay}">
+                                    <TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                                      Mode="OneWay">
+                                            <Binding Path="CurrentPrice" />
+                                            <Binding Path="Instrument.Digits" />
+                                        </MultiBinding>
+
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="S/L Offset">
+                        <DataGridTextColumn.Binding>
+                            <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                          Mode="OneWay">
+                                <Binding Path="SL" />
+                                <Binding Path="Instrument.Digits" />
+                            </MultiBinding>
+                        </DataGridTextColumn.Binding>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="T/P Offset">
+                        <DataGridTextColumn.Binding>
+                            <MultiBinding Converter="{StaticResource PriceToStringConverter}"
+                                          Mode="OneWay">
+                                <Binding Path="TP" />
+                                <Binding Path="Instrument.Digits" />
+                            </MultiBinding>
+                        </DataGridTextColumn.Binding>
+                    </DataGridTextColumn>
+              
+                    <DataGridTextColumn Binding="{Binding Order.Commission,
+                                                          StringFormat='{}{0:##0.00###}',
+                                                          Mode=OneWay}"
+                                        Header="Trade C." />
+                    <DataGridTemplateColumn Header="P/L Pips">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Foreground="{Binding ProfitPips,
+                                                                Converter={StaticResource ProfitToForegroundConverter},
+                                                                Mode=OneWay}"
+                                           Text="{Binding ProfitPips,
+                                                          Mode=OneWay,
+                                                          StringFormat='{}{0:##0}'}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Profit">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Foreground="{Binding Profit,
+                                                                Converter={StaticResource ProfitToForegroundConverter},
+                                                                Mode=OneWay}"
+                                           Text="{Binding Profit,
+                                                          Mode=OneWay,
+                                                          StringFormat='{}{0:##0.00}'}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Binding="{Binding Order.TimeInForce,
+                                                          Mode=OneWay}"
+                                        Header="TIF" />
+                    <DataGridTemplateColumn Header="Server Side">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Background="{Binding IsServerSide,
+                                                        Converter={converters:ExecutionSideToBrushConverter Server=#A83434}, Mode=OneWay}"
+                                    Text="{Binding IsServerSide, Mode=OneWay}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                </DataGrid.Columns>
+
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Command="{Binding ExportCommand}"
+                                  Header="Export to XLSX">
+                            <MenuItem.Icon>
+                                <Image Source="..\..\Resources\Images\ExportReport.png" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Command="{Binding ModifyCommand}"
+                                  Header="Modify Order"
+                                  IsEnabled="{Binding IsTradingAllowed}">
+                            <MenuItem.Icon>
+                                <Image Source="..\..\Resources\Images\Configure.png" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Command="{Binding PlaceOpposite}"
+                                  Header="Place Opposite"
+                                  IsEnabled="{Binding IsTradingAllowed}">
+                            <MenuItem.Icon>
+                                <Image Source="..\..\Resources\Images\NewOrder.png" Width="16" Height="16"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+            </DataGrid>
+        </Grid>
+    </DataTemplate>
+</ResourceDictionary>

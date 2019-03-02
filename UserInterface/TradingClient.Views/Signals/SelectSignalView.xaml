@@ -1,0 +1,63 @@
+<Window x:Class="TradingClient.Views.SelectSignalView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:beh="clr-namespace:TradingClient.BaseStyles.Behaviours;assembly=TradingClient.BaseStyles"
+        Title="Select Signals"
+        Width="350"
+        Height="300"
+        MinWidth="350"
+        MinHeight="300"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen">
+    <i:Interaction.Behaviors>
+        <beh:DialogResultBehavior DialogResultTrigger="{Binding DialogResult}" />
+    </i:Interaction.Behaviors>
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/TradingClient.BaseStyles;component/Styles/Dark/Main.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.Style>
+        <Style TargetType="{x:Type Window}">
+            <Style.BasedOn>
+                <Style TargetType="Control">
+                    <Setter Property="Background" Value="{StaticResource Dark_Background}" />
+                    <Setter Property="Foreground" Value="{StaticResource Dark_Foreground}" />
+                </Style>
+            </Style.BasedOn>
+        </Style>
+    </Window.Style>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch">
+            <ListBox ItemsSource="{Binding Signals}"
+                     TextBlock.FontSize="14"
+                     SelectionMode="Extended"
+                     x:Name="ListBox1">
+            </ListBox>
+        </Grid>
+        <Grid Grid.Row="1">
+            <StackPanel Margin="3,20,3,3"
+                        HorizontalAlignment="Center"
+                        Orientation="Horizontal">
+                <Button IsDefault="True"
+                        CommandParameter="{Binding ElementName=ListBox1, Path=SelectedItems}"
+                        Command="{Binding OkCommand}"
+                        Content="OK" />
+                <Button Command="{Binding CancelCommand}"
+                        Content="Cancel"
+                        IsCancel="True" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

@@ -1,0 +1,39 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:interfaces="clr-namespace:TradingClient.ViewModelInterfaces;assembly=TradingClient.ViewModelInterfaces" >
+
+    <DataTemplate x:Key="LogTemplate"
+                  DataType="{x:Type interfaces:ILogViewModel}" >
+        <Grid >
+            <DataGrid AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      CanUserResizeColumns="True"
+                      CanUserResizeRows="True"
+                      CanUserSortColumns="True"
+                      ColumnWidth="*"
+                      HeadersVisibility="Column"
+                      IsReadOnly="True"
+                      ItemsSource="{Binding Items}" >
+
+                <DataGrid.ContextMenu>
+                    <ContextMenu >
+                        <MenuItem Command="{Binding ClearLogsCommand}"
+                                  Header="Clear All" />
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Width="Auto" Binding="{Binding Type, IsAsync=True, Mode=OneWay}"
+                                        Header="Type" />
+                    <DataGridTextColumn Width="Auto" Binding="{Binding Date, IsAsync=True, Mode=OneWay}"
+                                        Header="Date" />
+                    <DataGridTextColumn Width="*" Binding="{Binding Text, IsAsync=True, Mode=OneWay}"
+                                        Header="Text" />
+                    <DataGridTextColumn Width="*" Binding="{Binding Details, IsAsync=True, Mode=OneWay}"
+                                        Header="Details" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </DataTemplate>
+</ResourceDictionary>

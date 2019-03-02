@@ -1,0 +1,187 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:command="http://www.galasoft.ch/mvvmlight"
+                    xmlns:converters="clr-namespace:TradingClient.BaseStyles.Converters;assembly=TradingClient.BaseStyles"
+                    xmlns:extensions="clr-namespace:TradingClient.BaseStyles.Extensions;assembly=TradingClient.BaseStyles"
+                    xmlns:interfaces="clr-namespace:TradingClient.ViewModelInterfaces;assembly=TradingClient.ViewModelInterfaces"
+                    xmlns:avalon="http://schemas.xceed.com/wpf/xaml/avalondock">
+
+    <DataTemplate x:Key="SignalsManagerTemplate"
+                  DataType="{x:Type interfaces:ISignalsManagerViewModel}">
+        <DataTemplate.Resources>
+            <avalon:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        </DataTemplate.Resources>
+        <Grid>
+            <DataGrid AutoGenerateColumns="False"
+                        CanUserAddRows="False"
+                        CanUserDeleteRows="False"
+                        CanUserResizeColumns="True"
+                        CanUserResizeRows="False"
+                        CanUserSortColumns="True"
+                        VerticalScrollBarVisibility="Auto"
+                        HeadersVisibility="Column"
+                        SelectionMode="Single"
+                        SelectionUnit="FullRow"
+                        IsReadOnly="True"
+                        FontSize="16"
+                        ItemsSource="{Binding Signals}">
+
+                <!-- optional: hide selection highlight -->
+                <DataGrid.CellStyle>
+                    <Style TargetType="{x:Type DataGridCell}">
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource Dark_Foreground}" />
+                                <Setter Property="Background" Value="{x:Null}" />
+                                <Setter Property="BorderBrush" Value="{x:Null}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.CellStyle>
+
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="Signal Name" Width="*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <ProgressBar Minimum="0" 
+                                                 Maximum="100" 
+                                                 Height="28"
+                                                 Background="{StaticResource Dark_DarkBorderBrush}" 
+                                                 Opacity="0.25" 
+                                                 Visibility="{Binding IsBacktesting, Converter={StaticResource BoolToVisibility}, ConverterParameter={x:Static Visibility.Hidden}}"
+                                                 extensions:ProgressBarSmootherExtention.SmoothValue="{Binding BacktestProgress}" />
+                                    <StackPanel Orientation="Horizontal" Margin="5,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Parent.Parent.Name, StringFormat={}{0}.}" />
+                                        <TextBlock Text="{Binding Parent.Name, StringFormat={}{0}.}" />
+                                        <TextBlock Foreground="White" Text="{Binding Name}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="BT Mode" Width="80">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          IsChecked="{Binding IsInBacktestMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="BT Settings" Width="120">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="BTS"
+                                        ToolTip="Backtest settings" 
+                                        HorizontalAlignment="Center"
+                                        Command="{Binding DataContext.ShowBacktestSettingsCommand, 
+                                                          RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="Parameter Space" Width="140">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="BT PS"
+                                        ToolTip="Parameter space" 
+                                        HorizontalAlignment="Center"
+                                        Command="{Binding DataContext.ShowParamSpaceCommand, 
+                                                          RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="Report" Width="100">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="R"  
+                                        HorizontalAlignment="Center"
+                                        Command="{Binding DataContext.ShowBacktestResultsCommand, 
+                                                          RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                        CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="Control Panel" Width="Auto" CanUserSort="False">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button Width="22"
+                                            ToolTip="Start"
+                                            Command="{Binding DataContext.StartCommand, 
+                                                              RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                            CommandParameter="{Binding}">
+                                        <Path Data="M0,0 L0,10 10,5 0,0z"
+                                                Fill="{StaticResource Dark_Foreground}" 
+                                                Width="10"
+                                                Height="11"
+                                                Margin="2,0,0,0" />
+                                    </Button>
+                                    <Button Width="22"
+                                            ToolTip="Pause"
+                                            Command="{Binding DataContext.PauseCommand, 
+                                                              RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                            CommandParameter="{Binding}">
+                                        <Path Data="M0,0 L0,10 3,10 3,0 0,0 M5,0 L5,10 8,10 8,0 5,0z"
+                                                Fill="{StaticResource Dark_Foreground}" 
+                                                Width="10"
+                                                Height="11"
+                                                Margin="3,0,0,0" />
+                                    </Button>
+                                    <Button Width="22"
+                                            ToolTip="Stop"
+                                            Command="{Binding DataContext.StopCommand, 
+                                                              RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                            CommandParameter="{Binding}">
+                                        <Path Data="M1,1 L1,9 9,9 9,1 1,1z"
+                                                Fill="{StaticResource Dark_Foreground}" 
+                                                Width="10"
+                                                Height="11" />
+                                    </Button>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="State" Width="180">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding State}" HorizontalAlignment="Center" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="Journal" Width="Auto" CanUserSort="False">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Show Output" 
+                                        Command="{Binding DataContext.ShowOutputCommand, 
+                                                          RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                        CommandParameter="{Binding}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="Alert" Width="Auto" CanUserSort="False">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Show Alerts"  
+                                        Command="{Binding DataContext.ShowAlertsCommand, 
+                                                          RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </DataTemplate>
+</ResourceDictionary>

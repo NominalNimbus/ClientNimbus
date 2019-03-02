@@ -1,0 +1,87 @@
+<Window x:Class="TradingClient.Views.CheckableDialogView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:beh="clr-namespace:TradingClient.BaseStyles.Behaviours;assembly=TradingClient.BaseStyles"
+        Title="{Binding Title}"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        MinWidth="420"
+        MinHeight="150"
+        MaxWidth="600"
+        MaxHeight="600"
+        WindowStartupLocation="CenterScreen" >
+    <i:Interaction.Behaviors>
+        <beh:DialogResultBehavior DialogResultTrigger="{Binding DialogResult}" />
+    </i:Interaction.Behaviors>
+
+    <Window.Resources>
+        <ResourceDictionary >
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/TradingClient.BaseStyles;component/Styles/Dark/Main.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.Style>
+        <Style TargetType="{x:Type Window}" >
+            <Style.BasedOn>
+                <Style TargetType="Control" >
+                    <Setter Property="Background" Value="{StaticResource Dark_Background}" />
+                    <Setter Property="Foreground" Value="{StaticResource Dark_Foreground}" />
+                </Style>
+            </Style.BasedOn>
+        </Style>
+    </Window.Style>
+
+    <Grid >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <Image 
+                   Margin="10"
+                   Stretch="None"
+                   VerticalAlignment="Top"
+                   HorizontalAlignment="Center"
+                   Source="{Binding Icon, Mode=OneWay}"/>
+            <TextBlock 
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap" 
+                       Margin="5" 
+                       Text="{Binding Message}" />
+        </StackPanel>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <CheckBox 
+                      Margin="10,5,5,5"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Center"
+                      ToolTip="Do not ask again on confirmation"
+                      IsChecked="{Binding IsChecked}">
+                <AccessText Text="Remember this _choice" />
+            </CheckBox>
+            <Button Command="{Binding ConfirmCommand}"
+                    Grid.Column="1"
+                    Margin="5,10,3,10"
+                    IsDefault="True" >
+                <AccessText Text="_Yes"/>
+            </Button>
+            <Button Command="{Binding CancelCommand}"
+                    Grid.Column="2"
+                    Margin="3,10,10,10"
+                    IsCancel="True" >
+                <AccessText Text="_No"/>
+            </Button>
+        </Grid>
+
+    </Grid>
+</Window>
