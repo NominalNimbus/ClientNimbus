@@ -29,7 +29,7 @@ How to run ClientNimbus:
 + download the sources from github  
 + build the solution  
 + run ClientApp.exe from target directory  
-+ **Video tutorial here:   https://www.youtube.com/playlist?list=PLbiaIO7sG7FYlrgOV1XLHrnaufJ7fK6Hx **  
++ **Video tutorial here:   https://www.youtube.com/playlist?list=PLbiaIO7sG7FaonLsYWU1rigwKbCFl0gwc **  
 
 ClientNimbus want's to connenct to ServiceNimbus after startup.  
 Enter the user and password as well as IP and designtime port: 8732 for WCF connection.  
